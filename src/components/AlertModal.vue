@@ -30,7 +30,16 @@
         </div>
         <div style="display:flex;gap:10px;justify-content:flex-end;padding-top:4px">
           <button class="btn btn-outline btn-sm" @click="close">Fermer</button>
-          <button class="btn btn-primary btn-sm" @click="$emit('mark-resolved', alert)">✓ Marquer traité</button>
+          <button class="btn btn-primary btn-sm" :disabled="updating" @click="$emit('mark-resolved', alert)">
+            {{ updating ? 'Mise a jour...' : '✓ Marquer traite' }}
+          </button>
+        </div>
+        <div
+          v-if="feedbackMessage"
+          style="margin-top:10px;font-size:12px"
+          :style="{ color: feedbackType === 'success' ? 'var(--green)' : 'var(--red)' }"
+        >
+          {{ feedbackMessage }}
         </div>
       </div>
     </div>
@@ -43,6 +52,9 @@ import { computed } from 'vue'
 const props = defineProps({
   open: { type: Boolean, default: false },
   alert: { type: Object, default: null },
+  updating: { type: Boolean, default: false },
+  feedbackMessage: { type: String, default: '' },
+  feedbackType: { type: String, default: '' },
 })
 
 const emit = defineEmits(['close', 'mark-resolved'])
@@ -64,8 +76,8 @@ const severityChip = computed(() => {
 const statusChip = computed(() => {
   if (!props.alert) return 'yellow'
   if (props.alert.status === 'new') return 'red'
-  if (props.alert.status === 'in_progress') return 'orange'
-  if (props.alert.status === 'resolved') return 'green'
+  if (['in_progress', 'escalade', 'suivi', 'signale', 'en_attente'].includes(props.alert.status)) return 'orange'
+  if (['traite', 'archive'].includes(props.alert.status)) return 'green'
   return 'yellow'
 })
 
@@ -73,7 +85,12 @@ const statusLabel = computed(() => {
   if (!props.alert) return ''
   if (props.alert.status === 'new') return 'Nouveau'
   if (props.alert.status === 'in_progress') return 'En cours'
-  if (props.alert.status === 'resolved') return 'Traité'
+  if (props.alert.status === 'escalade') return 'Escalade'
+  if (props.alert.status === 'suivi') return 'Suivi'
+  if (props.alert.status === 'signale') return 'Signale'
+  if (props.alert.status === 'en_attente') return 'En attente'
+  if (props.alert.status === 'traite') return 'Traite'
+  if (props.alert.status === 'archive') return 'Archive'
   return props.alert.status
 })
 </script>
