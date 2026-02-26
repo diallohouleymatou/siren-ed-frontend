@@ -1,42 +1,41 @@
-# SIREN‑ED Frontend (Vue + Tailwind)
+# SIREN-ED Frontend
 
-## Objectif
-Frontend MVP pour la plateforme SIREN‑ED. Priorité: SSO + signaler + consulter + statut.
+Interface web du MVP SIREN-ED.
 
 ## Stack
-- Vue 3 + Vite + Vue Router
-- Tailwind CSS (design intact via CSS source)
+- Vue 3 (Vite)
+- Tailwind CSS
+- Vue Router
 
-## Lancer le projet
+## Prerequis
+- Node.js 18+
+- npm
+
+## Installation
 ```bash
-cd /home/houleymatou-diallo/siren-ed-frontend
 npm install
+```
+
+## Lancer en local
+```bash
 npm run dev
 ```
 
-## Configuration API
-Définir la base URL API:
+## Build
 ```bash
-# .env.local
+npm run build
+npm run preview
+```
+
+## Configuration
+Creer un fichier `.env.local` a la racine:
+
+```bash
 VITE_API_BASE_URL=http://localhost:5000/api
 ```
 
-## Auth (SSO)
-Le frontend envoie le token via:
-- `Authorization: Bearer <access_token>`
-
-Le token est lu depuis:
-- `localStorage.getItem('access_token')`
-
-## Structure
-- `src/App.vue`: layout principal + orchestration
-- `src/components/`: composants UI
-- `src/router/index.js`: routes
-- `src/services/api.js`: client API
-- `src/data/mock.js`: fallback si API indisponible
-
 ## Routes
-- `/` dashboard
+- `/`
 - `/alerts`
 - `/map`
 - `/report`
@@ -46,12 +45,13 @@ Le token est lu depuis:
 - `/analytics`
 - `/settings`
 
-## Contrat API (rappel)
-- `GET /api/alerts`
-- `GET /api/alerts/{id}`
-- `POST /api/alerts`
-- `PATCH /api/alerts/{id}/status`
+## Structure
+- `src/App.vue` layout principal
+- `src/router/index.js` routes
+- `src/components/` vues et composants UI
+- `src/services/api.js` appels API
+- `src/data/mock.js` donnees mock de secours
 
 ## Notes
-- Le design est basé directement sur le HTML initial.
-- Les vues non MVP sont en placeholder, prêtes à être remplacées.
+- Le design suit le prototype HTML fourni.
+- Le MVP priorise: creation, consultation et suivi de signalements.
