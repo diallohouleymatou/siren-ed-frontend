@@ -1,4 +1,4 @@
-const DEFAULT_BASE_URL = 'http://localhost:5000/api'
+const DEFAULT_BASE_URL = 'http://localhost:5017/api'
 
 function getBaseUrl() {
   return import.meta.env.VITE_API_BASE_URL || DEFAULT_BASE_URL
@@ -31,22 +31,25 @@ export const api = {
     return request('/me')
   },
   listAlerts(params = {}) {
-    const qs = new URLSearchParams(params).toString()
-    return request(`/alerts${qs ? `?${qs}` : ''}`)
+    const hasStatus = typeof params.status !== 'undefined' && params.status !== null && params.status !== ''
+    if (hasStatus) {
+      return request(`/alert/by-status/${params.status}`)
+    }
+    return request('/alert/getAlert')
   },
   getAlert(id) {
-    return request(`/alerts/${id}`)
+    return request(`/alert/${id}`)
   },
   createAlert(payload) {
-    return request('/alerts', {
+    return request('/alert/signalement', {
       method: 'POST',
       body: JSON.stringify(payload),
     })
   },
   updateAlertStatus(id, status) {
-    return request(`/alerts/${id}/status`, {
+    return request(`/alert/status/${id}`, {
       method: 'PATCH',
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ newStatus: status }),
     })
   },
 }
