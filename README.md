@@ -1,93 +1,108 @@
 # SIREN-ED Frontend
 
-Frontend du MVP SIREN-ED (plateforme de signalement pour le Ministere de l'Education).
+Frontend web du MVP **SIREN-ED**, plateforme de signalement et de suivi d'evenements.
 
-## Apercu
-Ce projet fournit l'interface web pour :
-- creer un signalement,
-- consulter les alertes,
-- visualiser le detail,
-- mettre a jour le statut.
+## Sommaire
+- [Presentation](#presentation)
+- [Fonctionnalites](#fonctionnalites)
+- [Stack technique](#stack-technique)
+- [Prerequis](#prerequis)
+- [Installation](#installation)
+- [Execution](#execution)
+- [Configuration](#configuration)
+- [API backend attendue](#api-backend-attendue)
+- [Routes applicatives](#routes-applicatives)
+- [Structure du projet](#structure-du-projet)
+- [Notes d'integration](#notes-dintegration)
 
-Le design reprend le prototype HTML de reference et reste responsive (desktop, tablette, mobile).
+## Presentation
+Cette application permet aux utilisateurs autorises de :
+- declarer un signalement,
+- suivre les alertes,
+- consulter les details,
+- mettre a jour les statuts,
+- naviguer sur les vues operationnelles du systeme.
+
+## Fonctionnalites
+- Creation d'un signalement
+- Liste des alertes
+- Detail d'une alerte
+- Mise a jour de statut
+- Navigation multi-vues (dashboard, carte, messagerie, diffusion, analytics, parametres)
+- Interface responsive (desktop, tablette, mobile)
 
 ## Stack technique
-- Vue 3
-- Vite
-- Tailwind CSS
-- Vue Router
+- `Vue 3`
+- `Vite`
+- `Tailwind CSS`
+- `Vue Router`
 
 ## Prerequis
-- Node.js 18+
-- npm
+- `Node.js` 18+
+- `npm`
 
 ## Installation
 ```bash
 npm install
 ```
 
-## Demarrage en local
+## Execution
+Mode developpement :
 ```bash
 npm run dev
 ```
 
-Application front : `http://localhost:5173`
-
-## Build production
+Build production :
 ```bash
 npm run build
 npm run preview
 ```
 
-## Configuration environnement
-Creer `.env.local` a la racine :
+## Configuration
+Creer un fichier `.env.local` a la racine :
 
 ```bash
 VITE_API_BASE_URL=http://localhost:5017/api
 ```
 
-## Backend attendu
-Le frontend est aligne avec le backend ASP.NET sur les endpoints suivants :
+## API backend attendue
+Le frontend est aligne avec les endpoints suivants :
+
 - `GET /api/alert/getAlert`
 - `GET /api/alert/{id}`
 - `POST /api/alert/signalement`
 - `PATCH /api/alert/status/{id}`
 
-Important : le backend doit autoriser CORS pour `http://localhost:5173`.
-
-## Routes front
-- `/` : dashboard
-- `/alerts` : liste des alertes
-- `/map` : carte
-- `/report` : creation signalement
-- `/messages` : messagerie
-- `/broadcast` : diffusion
-- `/performance` : performance
-- `/analytics` : analyses
-- `/settings` : parametres
+## Routes applicatives
+| Route | Description |
+|---|---|
+| `/` | Dashboard |
+| `/alerts` | Liste des alertes |
+| `/map` | Carte |
+| `/report` | Nouveau signalement |
+| `/messages` | Messagerie |
+| `/broadcast` | Diffusion |
+| `/performance` | Performance |
+| `/analytics` | Analyses |
+| `/settings` | Parametres |
 
 ## Structure du projet
-- `src/App.vue` : orchestration globale
-- `src/router/index.js` : declaration des routes
-- `src/components/` : vues et composants UI
-- `src/services/api.js` : client HTTP
-- `src/data/mock.js` : fallback local si API indisponible
-- `src/style.css` : base visuelle issue du prototype
+```text
+src/
+  App.vue
+  main.js
+  style.css
+  router/
+    index.js
+  components/
+    ...
+  services/
+    api.js
+  data/
+    mock.js
+```
 
 ## Notes d'integration
-- Les appels API passent en priorite sur les donnees mock.
-- Le fallback mock reste present pour les endpoints non stabilises.
-- Le mapping des statuts backend est gere cote frontend pour l'affichage.
-
-## Lancement rapide (front + back)
-Terminal 1 (backend):
-```bash
-cd /home/houleymatou-diallo/SIRENE-ED_BackEnd/SIREN-ED_BackEnd
-dotnet run
-```
-
-Terminal 2 (frontend):
-```bash
-cd /home/houleymatou-diallo/siren-ed-frontend
-npm run dev
-```
+- Le frontend utilise l'API reelle en priorite.
+- Les donnees mock restent disponibles en fallback si l'API est indisponible.
+- Le backend doit autoriser CORS pour l'origine du frontend (exemple: `http://localhost:5173`).
