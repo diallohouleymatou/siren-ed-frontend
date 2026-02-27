@@ -19,7 +19,8 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
           <div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:8px;padding:12px"><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">LOCALISATION</div><div style="font-size:13px">📍 {{ alert.location }}</div></div>
           <div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:8px;padding:12px"><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">IEF CONCERNÉE</div><div style="font-size:13px">🏛️ {{ alert.ief }}</div></div>
-          <div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:8px;padding:12px"><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">HEURE</div><div style="font-size:13px;font-family:var(--mono)">{{ alert.time }}</div></div>
+          <div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:8px;padding:12px"><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">DATE INCIDENT</div><div style="font-size:13px;font-family:var(--mono)">{{ alert.eventDateLabel || '--' }}</div></div>
+          <div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:8px;padding:12px"><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">HEURE INCIDENT</div><div style="font-size:13px;font-family:var(--mono)">{{ alert.time }}</div></div>
           <div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:8px;padding:12px"><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">CATÉGORIE</div><div style="font-size:13px">{{ alert.category }}</div></div>
         </div>
         <div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px">
@@ -30,8 +31,8 @@
         </div>
         <div style="display:flex;gap:10px;justify-content:flex-end;padding-top:4px">
           <button class="btn btn-outline btn-sm" @click="close">Fermer</button>
-          <button class="btn btn-primary btn-sm" :disabled="updating" @click="$emit('mark-resolved', alert)">
-            {{ updating ? 'Mise a jour...' : '✓ Marquer traite' }}
+          <button class="btn btn-primary btn-sm" :disabled="updating || alert?.status === 'traite'" @click="$emit('mark-resolved', alert)">
+            {{ updating ? 'Mise a jour...' : alert?.status === 'traite' ? 'Déjà traité' : '✓ Marquer traite' }}
           </button>
         </div>
         <div
@@ -75,22 +76,15 @@ const severityChip = computed(() => {
 
 const statusChip = computed(() => {
   if (!props.alert) return 'yellow'
-  if (props.alert.status === 'new') return 'red'
-  if (['in_progress', 'escalade', 'suivi', 'signale', 'en_attente'].includes(props.alert.status)) return 'orange'
-  if (['traite', 'archive'].includes(props.alert.status)) return 'green'
+  if (props.alert.status === 'traite') return 'green'
+  if (props.alert.status === 'en_cours') return 'orange'
   return 'yellow'
 })
 
 const statusLabel = computed(() => {
   if (!props.alert) return ''
-  if (props.alert.status === 'new') return 'Nouveau'
-  if (props.alert.status === 'in_progress') return 'En cours'
-  if (props.alert.status === 'escalade') return 'Escalade'
-  if (props.alert.status === 'suivi') return 'Suivi'
-  if (props.alert.status === 'signale') return 'Signale'
-  if (props.alert.status === 'en_attente') return 'En attente'
   if (props.alert.status === 'traite') return 'Traite'
-  if (props.alert.status === 'archive') return 'Archive'
+  if (props.alert.status === 'en_cours') return 'En cours'
   return props.alert.status
 })
 </script>

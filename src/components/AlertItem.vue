@@ -11,6 +11,7 @@
     </div>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
       <span class="alert-tag" :class="tagClass">{{ alert.label }}</span>
+      <span class="alert-tag" :class="statusClass">{{ statusLabel }}</span>
       <span class="alert-time">{{ alert.time_ago }}</span>
     </div>
   </div>
@@ -29,4 +30,7 @@ const tagClass = computed(() => {
   if (props.alert.severity === 'warning') return 'tag-warning'
   return 'tag-info'
 })
+
+const statusClass = computed(() => (props.alert.status === 'traite' ? 'tag-info' : 'tag-alert'))
+const statusLabel = computed(() => (props.alert.status === 'traite' ? 'Traité' : 'En cours'))
 </script>

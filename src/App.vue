@@ -49,7 +49,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Topbar from './components/Topbar.vue'
 import Sidebar from './components/Sidebar.vue'
@@ -57,6 +57,7 @@ import AlertModal from './components/AlertModal.vue'
 import ToastContainer from './components/ToastContainer.vue'
 import { api } from './services/api'
 import { mockAlerts } from './data/mock'
+import { ensureAccessToken, initializeMsal, isAuthConfigured } from './auth/msal'
 
 const router = useRouter()
 const route = useRoute()
@@ -73,17 +74,20 @@ const toasts = ref([])
 const isPublicRoute = computed(() => !!route.meta.public)
 const isLandingRoute = computed(() => !!route.meta.landing)
 const isInternalRoute = computed(() => !!route.meta.internal)
+const authNoticeShown = ref(false)
+let clockIntervalId = null
+let relativeTimeIntervalId = null
 
 const stats = computed(() => {
   const critical = alerts.value.filter(a => a.severity === 'critical').length
   const alert = alerts.value.filter(a => a.severity === 'alert').length
-  const pending = alerts.value.filter(a => ['new', 'in_progress', 'escalade', 'suivi', 'signale', 'en_attente'].includes(a.status)).length
+  const pending = alerts.value.filter(a => a.status === 'en_cours').length
   const total = alerts.value.length
   return { critical, alert, pending, total }
 })
 
 const kpi = computed(() => {
-  const resolved = alerts.value.filter(a => ['traite', 'archive'].includes(a.status)).length
+  const resolved = alerts.value.filter(a => a.status === 'traite').length
   return { ...stats.value, resolved }
 })
 
@@ -132,9 +136,26 @@ async function loadAlerts() {
   }
 }
 
+async function ensureInternalAuth() {
+  if (!isAuthConfigured()) {
+    if (!authNoticeShown.value) {
+      addToast('info', 'SSO non configure', 'Le mode interne fonctionne sans token Azure tant que la configuration SSO n est pas active.')
+      authNoticeShown.value = true
+    }
+    return true
+  }
+
+  await initializeMsal()
+  const token = await ensureAccessToken()
+  if (!token) return false
+  localStorage.setItem('access_token', token)
+  return true
+}
+
 function mapAlert(a) {
   const severity = mapBackendSeverity(a.niveau_gravite)
   const status = mapBackendStatus(a.statut)
+  const eventDate = parseEventDate(a.date_evenement)
   return {
     id: a.idAlert,
     title: a.title || (a.description ? a.description.slice(0, 90) : 'Signalement'),
@@ -145,8 +166,10 @@ function mapAlert(a) {
     academy: a.academie,
     ief: a.ief_concerne,
     location: a.etablissement || '—',
-    time: (a.date_evenement || '').toString().slice(11,16) || '--:--',
-    time_ago: 'À l\'instant',
+    eventDate,
+    eventDateLabel: formatDate(eventDate),
+    time: formatTime(eventDate),
+    time_ago: formatTimeAgo(eventDate),
     people: Number(a.personne_affecte) || 0,
     description: a.description || '',
     actions: a.mesure_prise ? [a.mesure_prise] : [],
@@ -163,28 +186,13 @@ function mapBackendSeverity(value) {
 }
 
 function mapBackendStatus(value) {
-  const map = {
-    0: 'new',
-    1: 'in_progress',
-    2: 'escalade',
-    3: 'suivi',
-    4: 'signale',
-    5: 'traite',
-    6: 'en_attente',
-    7: 'archive',
+  if (typeof value === 'number') {
+    return [1, 5].includes(value) ? 'traite' : 'en_cours'
   }
-  if (typeof value === 'string') {
-    const v = value.toLowerCase()
-    if (v.includes('nouveau')) return 'new'
-    if (v.includes('encours') || v.includes('en cours')) return 'in_progress'
-    if (v.includes('escalade')) return 'escalade'
-    if (v.includes('suivi')) return 'suivi'
-    if (v.includes('signale')) return 'signale'
-    if (v.includes('traite')) return 'traite'
-    if (v.includes('attente')) return 'en_attente'
-    if (v.includes('archive')) return 'archive'
-  }
-  return map[value] || 'new'
+  const raw = (value || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+  if (!raw) return 'en_cours'
+  if (raw.includes('trait')) return 'traite'
+  return 'en_cours'
 }
 
 async function submitReport(payload) {
@@ -259,9 +267,12 @@ async function markResolved(alert) {
   statusFeedbackMessage.value = ''
   statusFeedbackType.value = ''
   try {
-    await api.updateAlertStatus(alert.id, 5)
+    await updateAlertAsResolved(alert.id)
     const idx = alerts.value.findIndex(a => a.id === alert.id)
-    if (idx >= 0) alerts.value[idx].status = 'traite'
+    if (idx >= 0) {
+      alerts.value[idx].status = 'traite'
+      alerts.value[idx].time_ago = formatTimeAgo(alerts.value[idx].eventDate)
+    }
     if (selectedAlert.value && selectedAlert.value.id === alert.id) {
       selectedAlert.value.status = 'traite'
     }
@@ -278,19 +289,36 @@ async function markResolved(alert) {
   }
 }
 
+async function updateAlertAsResolved(alertId) {
+  const candidates = ['Traite', 'traite', 5, 1]
+  let lastError = null
+  for (const candidate of candidates) {
+    try {
+      await api.updateAlertStatus(alertId, candidate)
+      return
+    } catch (err) {
+      lastError = err
+    }
+  }
+  throw lastError || new Error('Echec de mise a jour du statut.')
+}
+
 function simulateAlert() {
+  const now = new Date()
   const simulated = {
     id: Date.now(),
     title: 'Intoxication alimentaire — 8 élèves hospitalisés',
     severity: 'critical',
     label: 'CRITIQUE',
     category: 'Santé',
-    status: 'new',
+    status: 'en_cours',
     academy: 'Dakar',
     ief: 'IEF Dakar-Nord',
     location: 'École Primaire Grand-Yoff, Dakar',
-    time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-    time_ago: "À l'instant",
+    eventDate: now,
+    eventDateLabel: formatDate(now),
+    time: formatTime(now),
+    time_ago: formatTimeAgo(now),
     people: 8,
     description: 'Huit élèves ont été hospitalisés après avoir consommé des repas de la cantine.',
     actions: ['SAMU alerté', 'Parents contactés'],
@@ -307,18 +335,64 @@ function updateClock() {
   dateLabel.value = now.toLocaleDateString('fr-FR', opts)
 }
 
+function parseEventDate(value) {
+  if (!value) return null
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+function formatTime(date) {
+  if (!date) return '--:--'
+  return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+}
+
+function formatDate(date) {
+  if (!date) return '--'
+  return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+function formatTimeAgo(date) {
+  if (!date) return '--'
+  const diffMs = Date.now() - date.getTime()
+  if (diffMs <= 0) return "À l'instant"
+  const minutes = Math.floor(diffMs / 60000)
+  if (minutes < 1) return "À l'instant"
+  if (minutes < 60) return `Il y a ${minutes} min`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `Il y a ${hours} h`
+  const days = Math.floor(hours / 24)
+  return `Il y a ${days} j`
+}
+
+function refreshRelativeTimes() {
+  alerts.value = alerts.value.map(a => ({
+    ...a,
+    time_ago: formatTimeAgo(a.eventDate),
+  }))
+}
+
 onMounted(() => {
   updateClock()
-  setInterval(updateClock, 1000)
+  clockIntervalId = setInterval(updateClock, 1000)
+  relativeTimeIntervalId = setInterval(refreshRelativeTimes, 60000)
   if (isInternalRoute.value) {
-    loadAlerts()
+    ensureInternalAuth().then(ok => {
+      if (ok) loadAlerts()
+    })
     setTimeout(() => addToast('info', 'SIREN-ED opérationnel', 'Surveillance active — 1847 établissements connectés'), 1500)
   }
 })
 
 watch(isInternalRoute, (isInternal) => {
   if (isInternal && alerts.value.length === 0) {
-    loadAlerts()
+    ensureInternalAuth().then(ok => {
+      if (ok) loadAlerts()
+    })
   }
+})
+
+onUnmounted(() => {
+  if (clockIntervalId) clearInterval(clockIntervalId)
+  if (relativeTimeIntervalId) clearInterval(relativeTimeIntervalId)
 })
 </script>
