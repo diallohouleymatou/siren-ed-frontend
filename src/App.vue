@@ -10,7 +10,20 @@
     @mark-resolved="markResolved"
   />
 
-  <div class="app-shell">
+  <div v-if="isLandingRoute">
+    <RouterView />
+  </div>
+
+  <div v-else-if="isPublicRoute" class="public-layout">
+    <RouterView v-slot="{ Component }">
+      <component
+        :is="Component"
+        @submit-public="submitPublicReport"
+      />
+    </RouterView>
+  </div>
+
+  <div v-else class="app-shell">
     <Topbar :time="clock" :stats="stats" @toggle-menu="toggleSidebar" />
     <div class="sidebar-overlay" :class="{ open: isSidebarOpen }" @click="closeSidebar"></div>
     <div class="sidebar-wrap" :class="{ open: isSidebarOpen }">
@@ -36,8 +49,8 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import Topbar from './components/Topbar.vue'
 import Sidebar from './components/Sidebar.vue'
 import AlertModal from './components/AlertModal.vue'
@@ -46,6 +59,7 @@ import { api } from './services/api'
 import { mockAlerts } from './data/mock'
 
 const router = useRouter()
+const route = useRoute()
 const isSidebarOpen = ref(false)
 const alerts = ref([])
 const selectedAlert = ref(null)
@@ -56,6 +70,9 @@ const statusFeedbackType = ref('')
 const clock = ref('--:--:--')
 const dateLabel = ref('')
 const toasts = ref([])
+const isPublicRoute = computed(() => !!route.meta.public)
+const isLandingRoute = computed(() => !!route.meta.landing)
+const isInternalRoute = computed(() => !!route.meta.internal)
 
 const stats = computed(() => {
   const critical = alerts.value.filter(a => a.severity === 'critical').length
@@ -86,11 +103,11 @@ function closeSidebar() {
 }
 
 function goReport() {
-  router.push('/report')
+  router.push('/app/report')
 }
 
 function goAlerts() {
-  router.push('/alerts')
+  router.push('/app/alerts')
 }
 
 function removeToast(id) {
@@ -195,9 +212,45 @@ async function submitReport(payload) {
     const created = await api.createAlert(apiPayload)
     alerts.value.unshift(mapAlert(created))
     addToast('critical', 'Signalement transmis', 'Votre signalement a été enregistré.')
-    router.push('/alerts')
+    router.push('/app/alerts')
   } catch (err) {
-    addToast('alert', 'Erreur API', "Impossible d'enregistrer le signalement.")
+    const message = err instanceof Error ? err.message : "Impossible d'enregistrer le signalement."
+    addToast('alert', 'Erreur API', message)
+  }
+}
+
+async function submitPublicReport(payload, done) {
+  try {
+    const apiPayload = {
+      description: payload.description,
+      niveau_gravite: payload.severity === 'critical'
+        ? 'Critique'
+        : payload.severity === 'alert'
+          ? 'Alerte'
+          : payload.severity === 'warning'
+            ? 'Signalement'
+            : 'Information',
+      categorie: payload.category,
+      niveau_declarant: payload.reporter_name ? `Public - ${payload.reporter_name}` : 'Public',
+      academie: payload.academy,
+      ief_concerne: payload.ief,
+      etablissement: payload.establishment,
+      date_evenement: new Date(payload.event_datetime).toISOString(),
+      personne_affecte: String(payload.people_affected || 0),
+      mesure_prise: payload.actions || '',
+      appui_requis_niveau_central: 'A qualifier',
+      contact_declarant: payload.contact,
+    }
+    const created = await api.createPublicAlert(apiPayload)
+    addToast('success', 'Signalement recu', 'Votre signalement a ete transmis aux services competents.')
+    if (typeof done === 'function') {
+      const ref = created?.idAlert ? `Reference #${created.idAlert}` : 'Merci. Votre signalement a ete enregistre.'
+      done(true, ref)
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Impossible de transmettre le signalement pour le moment.'
+    addToast('alert', 'Envoi impossible', message)
+    if (typeof done === 'function') done(false, message)
   }
 }
 
@@ -218,7 +271,8 @@ async function markResolved(alert) {
   } catch (err) {
     statusFeedbackMessage.value = 'Echec de mise a jour du statut.'
     statusFeedbackType.value = 'error'
-    addToast('alert', 'Erreur API', "Impossible de mettre à jour le statut.")
+    const message = err instanceof Error ? err.message : "Impossible de mettre à jour le statut."
+    addToast('alert', 'Erreur API', message)
   } finally {
     statusUpdating.value = false
   }
@@ -256,7 +310,15 @@ function updateClock() {
 onMounted(() => {
   updateClock()
   setInterval(updateClock, 1000)
-  loadAlerts()
-  setTimeout(() => addToast('info', 'SIREN-ED opérationnel', 'Surveillance active — 1847 établissements connectés'), 1500)
+  if (isInternalRoute.value) {
+    loadAlerts()
+    setTimeout(() => addToast('info', 'SIREN-ED opérationnel', 'Surveillance active — 1847 établissements connectés'), 1500)
+  }
+})
+
+watch(isInternalRoute, (isInternal) => {
+  if (isInternal && alerts.value.length === 0) {
+    loadAlerts()
+  }
 })
 </script>

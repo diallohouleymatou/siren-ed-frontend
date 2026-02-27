@@ -46,6 +46,12 @@ export const api = {
       body: JSON.stringify(payload),
     })
   },
+  createPublicAlert(payload) {
+    return request('/public/signalement', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
   updateAlertStatus(id, status) {
     return request(`/alert/status/${id}`, {
       method: 'PATCH',
