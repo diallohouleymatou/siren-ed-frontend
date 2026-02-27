@@ -2,11 +2,11 @@
   <nav class="sidebar">
     <div class="nav-section">
       <div class="nav-label">Tableau de bord</div>
-      <RouterLink to="/" class="nav-item" :class="{ active: isActive('dashboard') }" @click="notify">
+      <RouterLink to="/app/dashboard" class="nav-item" :class="{ active: isActive('dashboard') }" @click="notify">
         <div class="nav-icon">📊</div>
         <div class="nav-text">Vue d'ensemble</div>
       </RouterLink>
-      <RouterLink to="/map" class="nav-item" :class="{ active: isActive('map') }" @click="notify">
+      <RouterLink to="/app/map" class="nav-item" :class="{ active: isActive('map') }" @click="notify">
         <div class="nav-icon">🗺️</div>
         <div class="nav-text">Carte des événements</div>
         <div class="nav-badge">10</div>
@@ -15,12 +15,12 @@
 
     <div class="nav-section">
       <div class="nav-label">Alertes & Événements</div>
-      <RouterLink to="/alerts" class="nav-item" :class="{ active: isActive('alerts') }" @click="notify">
+      <RouterLink to="/app/alerts" class="nav-item" :class="{ active: isActive('alerts') }" @click="notify">
         <div class="nav-icon">🚨</div>
         <div class="nav-text">Flux d'alertes</div>
         <div class="nav-badge">3</div>
       </RouterLink>
-      <RouterLink to="/report" class="nav-item" :class="{ active: isActive('report') }" @click="notify">
+      <RouterLink to="/app/report" class="nav-item" :class="{ active: isActive('report') }" @click="notify">
         <div class="nav-icon">📝</div>
         <div class="nav-text">Signaler un événement</div>
       </RouterLink>
@@ -28,12 +28,12 @@
 
     <div class="nav-section">
       <div class="nav-label">Communication</div>
-      <RouterLink to="/messages" class="nav-item" :class="{ active: isActive('messages') }" @click="notify">
+      <RouterLink to="/app/messages" class="nav-item" :class="{ active: isActive('messages') }" @click="notify">
         <div class="nav-icon">💬</div>
         <div class="nav-text">Messagerie directe</div>
         <div class="nav-badge orange">5</div>
       </RouterLink>
-      <RouterLink to="/broadcast" class="nav-item" :class="{ active: isActive('broadcast') }" @click="notify">
+      <RouterLink to="/app/broadcast" class="nav-item" :class="{ active: isActive('broadcast') }" @click="notify">
         <div class="nav-icon">📢</div>
         <div class="nav-text">Diffusion circulaire</div>
       </RouterLink>
@@ -41,11 +41,11 @@
 
     <div class="nav-section">
       <div class="nav-label">Suivi & Contrôle</div>
-      <RouterLink to="/performance" class="nav-item" :class="{ active: isActive('performance') }" @click="notify">
+      <RouterLink to="/app/performance" class="nav-item" :class="{ active: isActive('performance') }" @click="notify">
         <div class="nav-icon">📈</div>
         <div class="nav-text">Performance IA/IEF</div>
       </RouterLink>
-      <RouterLink to="/analytics" class="nav-item" :class="{ active: isActive('analytics') }" @click="notify">
+      <RouterLink to="/app/analytics" class="nav-item" :class="{ active: isActive('analytics') }" @click="notify">
         <div class="nav-icon">🔬</div>
         <div class="nav-text">Analyses & Tendances</div>
       </RouterLink>
@@ -53,7 +53,7 @@
 
     <div class="nav-section">
       <div class="nav-label">Administration</div>
-      <RouterLink to="/settings" class="nav-item" :class="{ active: isActive('settings') }" @click="notify">
+      <RouterLink to="/app/settings" class="nav-item" :class="{ active: isActive('settings') }" @click="notify">
         <div class="nav-icon">⚙️</div>
         <div class="nav-text">Paramètres système</div>
       </RouterLink>
